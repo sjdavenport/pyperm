@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name='pyrft',
+    name='pyperm',
     install_requires=[
         'numpy',
         'sanssouci',
@@ -21,12 +21,12 @@ setup(
     version = '0.0.1',
     license='MIT',
     author='Samuel DAVENPORT',
-    download_url='https://github.com/sjdavenport/pyrft/',
+    download_url='https://github.com/sjdavenport/pyperm/',
     author_email='samuel.davenport@math.univ-toulouse.fr',
-    url='https://github.com/sjdavenport/pyrft/',
+    url='https://github.com/sjdavenport/pyperm/',
     long_description=long_description,
-    description='Python Toolbox of Functions for Analysing Random fields',
-    keywords='Random field Theory, fMRI, Post-hoc inference',
+    description='Python Toolbox of Functions for perofrming resampling in large scale datasets',
+    keywords='Permutation, Bootstrap, fMRI, Post-hoc inference',
     packages=find_packages(),
     python_requires='>=3',
 )

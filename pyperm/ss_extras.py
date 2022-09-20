@@ -4,7 +4,7 @@ Additional functions for the sanssouci toolbox
 import sanssouci as sa
 from scipy.stats import beta
 import numpy as np
-import pyrft as pr
+import pyperm as pr
 
 def t_beta(lamb, k, n_hypotheses):
     """ A function to compute the template for the beta family

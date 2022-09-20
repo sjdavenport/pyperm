@@ -1,7 +1,7 @@
 """
 Functions to run permutation methods
 """
-import pyrft as pr
+import pyperm as pr
 import numpy as np
 import sanssouci as sa
 from sklearn.utils import check_random_state

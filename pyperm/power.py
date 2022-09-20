@@ -1,7 +1,7 @@
 """
 Functions to simulate and test when the null is not true everywhere
 """
-import pyrft as pr
+import pyperm as pr
 import numpy as np
 import sys
 sys.path.insert(0, 'C:\\Users\\12SDa\\davenpor\\davenpor\\Other_Toolboxes\\sanssouci.python')

@@ -2,7 +2,7 @@
     Random field classes
 """
 import numpy as np
-import pyrft as pr
+import pyperm as pr
 
 class Field:
     """ Field class

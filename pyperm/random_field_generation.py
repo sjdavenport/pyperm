@@ -2,7 +2,7 @@
 A file containing the random field generation functions
 """
 import numpy as np
-import pyrft as pr
+import pyperm as pr
 from scipy.ndimage import gaussian_filter
 
 def smooth(data, fwhm, mask = 0):

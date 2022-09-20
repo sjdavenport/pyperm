@@ -2,7 +2,7 @@
 Functions to control the fdr
 """
 import numpy as np
-import pyrft as pr
+import pyperm as pr
 
 def fdr_bh( pvalues, alpha=0.05):
     """ fdr_bh( pvalues, alpha ) implements the Benjamini-Hochberg procedure on 

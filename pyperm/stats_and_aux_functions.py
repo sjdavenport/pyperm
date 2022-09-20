@@ -4,7 +4,7 @@ A file contain statistics functions
 """
 # Import statements
 import numpy as np
-import pyrft as pr
+import pyperm as pr
 from scipy.stats import t, norm
 
 def bernstd(p, nsubj, confidence_level = 0.95):

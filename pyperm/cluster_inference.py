@@ -8,7 +8,7 @@ from nilearn.image import get_data, load_img
 from nilearn.input_data import NiftiMasker
 from scipy.stats import t
 import sanssouci as sa
-import pyrft as pr
+import pyperm as pr
 
 
 def find_clusters(test_statistic, cdt, below = bool(0), mask = math.nan, \
