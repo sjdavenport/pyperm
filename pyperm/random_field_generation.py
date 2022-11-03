@@ -6,18 +6,22 @@ import pyperm as pr
 from scipy.ndimage import gaussian_filter
 
 def smooth(data, fwhm, mask = 0):
-    """ smooth
+    """ smooth(data, fwhm, mask = 0) smoothes the components of the random 
+    field data with an isotropic Gaussian kernel with given fwhm
 
     Parameters
     ---------------------
-    data    an object of class field
-    fwhm
+    data    an object of class field,
+        giving the randomness 
+    fwhm   an int,
+        giving full width half maximum with which to smooth the data
     mask   a numpy.nd array,
-            with the same dimensions as the data
+        containing 0 and 1s with the same dimensions as the data which 
+        specifices the mask
 
     Returns
     ---------------------
-    An object of class field with
+    An object of class field the components of which are the smooth random fields
 
     Examples
     ---------------------
@@ -69,7 +73,7 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
 
     Returns
     ---------------------
-    An object of class field with
+    An object of class field of stationary random noise
 
     Examples
     ---------------------
@@ -170,7 +174,7 @@ def wfield(mask, fibersize, field_type = 'N', field_params = 3):
 
     Returns
     ---------------------
-    An object of class field with
+    An object of class field with white noise
 
     Examples
     ---------------------
