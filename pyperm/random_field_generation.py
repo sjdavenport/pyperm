@@ -84,9 +84,9 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
     plt.imshow(F.field[:,:,1])
     
     # 3D
-    Dim = (50,50); nsubj = 20; fwhm = 4
+    Dim = (50,50,50); nsubj = 20; fwhm = 4
     F = pr.statnoise(Dim, nsubj, fwhm)
-    plt.imshow(F.field[:,:,1])
+    plt.imshow(F.field[:,:,25,1])
     
     # Plot the variance (the same everywhere up to noise because of the edge effect correction)
     plt.imshow(np.var(F.field, 2))
