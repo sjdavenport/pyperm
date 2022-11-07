@@ -142,8 +142,8 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
              if len(masksize) == 2:
                  data = data[(truncation + 1):(masksize[0]+truncation+1), (truncation + 1):(masksize[1]+truncation+1), :]
              elif len(masksize) == 3:
-                 data = data[(truncation + 1):(masksize[0]+truncation+1), (truncation + 1):(masksize[1]+truncation+1), (truncation + 1):(masksize[2]+truncation), :]
-                 
+                 data = data[(truncation + 1):(masksize[0]+truncation+1), (truncation + 1):(masksize[1]+truncation+1), (truncation + 1):(masksize[2]+truncation+1), :]
+          
     # Scale to ensure that the noise is variance 1!
     if scale_var and truncation > 0:
         if use1d:
