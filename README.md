@@ -14,10 +14,10 @@ see https://www.math.univ-toulouse.fr/~pneuvial/sanssouci.html and our upcoming 
     * [Dependencies](#dependencies)
 
 ## Getting Started <a name="folderstruct"></a>
-The majority of the code is available in the pyrft subfolder. The best way to get started is to work through the Jupyter Notebook: [contrast_examples.ipynb](https://github.com/sjdavenport/pyrft/blob/master/examples/contrasts_example.ipynb) available in the Examples folder. 
+The majority of the code is available in the pyperm subfolder. The best way to get started is to work through the Jupyter Notebook: [contrast_examples.ipynb](https://github.com/sjdavenport/pyperm/blob/master/examples/contrasts_example.ipynb) available in the Examples folder. 
 
 ## Code Structure <a name="codestruct"></a>
-The code for this package is contained within the pyrft subfolder. This section contains a general description of the files with the most important functions.
+The code for this package is contained within the pyperm subfolder. This section contains a general description of the files with the most important functions.
 
 ### cluster_inference.py <a name="cinference"></a>
 This file contains functions for calculating clusters and perform FDP inference on clusters.
@@ -35,7 +35,7 @@ This file contains functions to compare the power of bootstrap and parametric me
 This file contains functions to generate noisy random fields.  
 
 ## Set Up <a name="setup"></a>
-In order to install this package you'll need to download the package, go to the pyrft folder and run pip install. Many of the functions rely on code from the [SanSouci](https://github.com/pneuvial/sanssouci.python) python package so we recommend that you install that as well - this can be done similarly.  
+In order to install this package you'll need to download the package, go to the pyperm folder and run pip install. Many of the functions rely on code from the [SanSouci](https://github.com/pneuvial/sanssouci.python) python package so we recommend that you install that as well - this can be done similarly.  
 
 If you have any difficulties getting this code to run or have any questions
 feel free to get in touch with me at sdavenport(AT)ucsd.edu or via twitter [@BrainStatsSam](https://twitter.com/BrainStatsSam).
