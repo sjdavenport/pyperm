@@ -60,8 +60,8 @@ def smooth(data, fwhm, mask = 0):
 
 def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
     """ statnoise constructs a an object of class Field with specified mask
-    and fibersize and consisting of stationary noise (arising from white noise
-    smoothed with a Gaussian kernel)
+    and fibersize and consisting of 2D or 3D stationary noise (arising from 
+    white noise smoothed with a Gaussian kernel). 
 
     Parameters
     ---------------------
@@ -69,6 +69,7 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
           If a tuple then it gives the size of the mask (in which case the mask
           is taken to be all true)
           If a Boolean array then it is the mask itself
+          The mask must be 2D or 3D
     fibersize:   a tuple giving the fiber sizes (i.e. typically nsubj)
 
     Returns
@@ -77,6 +78,12 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
 
     Examples
     ---------------------
+    # 2D
+    Dim = (50,50); nsubj = 20; fwhm = 4
+    F = pr.statnoise(Dim, nsubj, fwhm)
+    plt.imshow(F.field[:,:,1])
+    
+    # 3D
     Dim = (50,50); nsubj = 20; fwhm = 4
     F = pr.statnoise(Dim, nsubj, fwhm)
     plt.imshow(F.field[:,:,1])
@@ -143,7 +150,9 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
                  data = data[(truncation + 1):(masksize[0]+truncation+1), (truncation + 1):(masksize[1]+truncation+1), :]
              elif len(masksize) == 3:
                  data = data[(truncation + 1):(masksize[0]+truncation+1), (truncation + 1):(masksize[1]+truncation+1), (truncation + 1):(masksize[2]+truncation+1), :]
-          
+             else:
+                 raise Exception("The mask must be 2D or 3D")
+                 
     # Scale to ensure that the noise is variance 1!
     if scale_var and truncation > 0:
         if use1d:
