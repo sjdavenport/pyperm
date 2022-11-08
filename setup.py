@@ -16,7 +16,8 @@ setup(
         'matplotlib',
         'sklearn',
         'scipy',
-        'scikit-image'
+        'scikit-image',
+        'nilearn'
     ],
     version = '0.0.2',
     license='MIT',
