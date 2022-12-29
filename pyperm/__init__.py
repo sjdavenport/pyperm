@@ -7,6 +7,7 @@ from .cluster_inference import *
 from .fdp import *
 from .power import *
 from .plotting import *
+from .glm import *
 
 
 __all__ = [
