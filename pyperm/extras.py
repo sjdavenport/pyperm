@@ -6,6 +6,7 @@ from scipy.stats import beta
 import numpy as np
 import pyperm as pr
 
+
 def t_beta(lamb, k, n_hypotheses):
     """ A function to compute the template for the beta family
 
@@ -46,6 +47,7 @@ def t_beta(lamb, k, n_hypotheses):
     # beta(k, m+1-k) distribution. This yields the lambda quantile of this distribution
     return beta.ppf(lamb, k, n_hypotheses+1-k)
 
+
 def t_inv_beta(set_of_pvalues):
     """ A function to compute the inverse template for the beta family
 
@@ -75,11 +77,13 @@ def t_inv_beta(set_of_pvalues):
     # (t_k^B)^{-1}(lambda) = F(lambda) where F (beta.pdf) is the cdf of the
     # beta(k, m+1-k) distribution.
     for k in np.arange(n_hypotheses):
-        transformed_pvalues[:,k] = beta.cdf(set_of_pvalues[:,k], k+1, n_hypotheses+1-(k+1))
+        transformed_pvalues[:, k] = beta.cdf(
+            set_of_pvalues[:, k], k+1, n_hypotheses+1-(k+1))
 
     return transformed_pvalues
 
-def t_ref(template = 'linear'):
+
+def t_ref(template='linear'):
     """ A function to compute the inverse template for the beta family
 
     Parameters
@@ -111,47 +115,50 @@ def t_ref(template = 'linear'):
         t_func = sa.beta_template
         t_inv = sa.inverse_beta_template
     else:
-        raise Exception('The specified template is not available or has been incorrectly input')
+        raise Exception(
+            'The specified template is not available or has been incorrectly input')
 
     return t_func, t_inv, t_inv_all
 
-def inverse_linear_template_all(pvals, K, do_sort = False):
-  """
-  A function to compute t_k^(-1)(pvals) for k = 1, \dots, K, where t_k(x) = xk/K.
-  Note that the pvals typically need to be sorted before input to this function!
-  ----------------------------------------------------------------------------
-  ARGUMENTS
-  - pvals: np.ndarry,
-      an array of size B by m (B: nperm, m: number of null hypotheses)
-  - K:  int,
-      an integer giving the size of the reference family
-  ----------------------------------------------------------------------------
-  OUTPUT
-  - out:   a numpy array such that out_{bn} = p0_{bn}*K/n 
-  ----------------------------------------------------------------------------
-  EXAMPLES
-    from scipy.stats import norm
-    pvals = norm.cdf(np.random.randn(5))
-    pvals = np.sort(pvals)
-    out =  pr.inverse_linear_template(pvals, 5)
-  ----------------------------------------------------------------------------
-  """
-  # Sort the pvalues unless otherwise specified
-  if do_sort:
-      pvals = np.sort(pvals, axis = 1)
 
-  # Obtain the number of columns of pvals: the total number of hypotheses being tested 
-  if len(pvals.shape) == 1:
-      m = len(pvals)
-  elif len(pvals.shape) == 2:
-      m = pvals.shape[1]
-   
-  # Generate a vector: (1/m,2/m,...,1)
-  normalized_ranks = (np.arange(m)+1)/float(K)
-  
-  return pvals/normalized_ranks
+def inverse_linear_template_all(pvals, K, do_sort=False):
+    """
+    A function to compute t_k^(-1)(pvals) for k = 1, \dots, K, where t_k(x) = xk/K.
+    Note that the pvals typically need to be sorted before input to this function!
+    ----------------------------------------------------------------------------
+    ARGUMENTS
+    - pvals: np.ndarry,
+        an array of size B by m (B: nperm, m: number of null hypotheses)
+    - K:  int,
+        an integer giving the size of the reference family
+    ----------------------------------------------------------------------------
+    OUTPUT
+    - out:   a numpy array such that out_{bn} = p0_{bn}*K/n 
+    ----------------------------------------------------------------------------
+    EXAMPLES
+      from scipy.stats import norm
+      pvals = norm.cdf(np.random.randn(5))
+      pvals = np.sort(pvals)
+      out =  pr.inverse_linear_template(pvals, 5)
+    ----------------------------------------------------------------------------
+    """
+    # Sort the pvalues unless otherwise specified
+    if do_sort:
+        pvals = np.sort(pvals, axis=1)
 
-def get_pivotal_stats(pval_matrix, size_of_original_template, template = 'linear' ):
+    # Obtain the number of columns of pvals: the total number of hypotheses being tested
+    if len(pvals.shape) == 1:
+        m = len(pvals)
+    elif len(pvals.shape) == 2:
+        m = pvals.shape[1]
+
+    # Generate a vector: (1/m,2/m,...,1)
+    normalized_ranks = (np.arange(m)+1)/float(K)
+
+    return pvals/normalized_ranks
+
+
+def get_pivotal_stats(pval_matrix, size_of_original_template, template='linear'):
     """A function to obtain the pivotal statistics given observed p-values
 
     Parameters
@@ -171,7 +178,7 @@ def get_pivotal_stats(pval_matrix, size_of_original_template, template = 'linear
     array-like of shape (B,)
         A numpy array of of size [B]  containing the pivotal statistics, whose
         j-th entry corresponds to \psi(g_j.X) with notation of the Blanchard et al 2020.
-      
+
     Examples
     ----------
     # Comparing to the implementation in the sanssouci package
@@ -194,13 +201,37 @@ def get_pivotal_stats(pval_matrix, size_of_original_template, template = 'linear
         raise Exception('The template must be input as a string')
 
     # Sort permuted p-values (within rows)
-    pval_matrix = np.sort(pval_matrix, axis = 1)
+    pval_matrix = np.sort(pval_matrix, axis=1)
 
     # Apply the template function
     # For each feature p, compare sorted permuted p-values to template
-    template_inverse_of_pvals = t_inv_all(pval_matrix, size_of_original_template)
+    template_inverse_of_pvals = t_inv_all(
+        pval_matrix, size_of_original_template)
 
     # Compute the minimum within each row
-    pivotal_stats = np.min(template_inverse_of_pvals, axis = 1)
+    pivotal_stats = np.min(template_inverse_of_pvals, axis=1)
 
     return pivotal_stats
+
+
+def capstr(s):
+    """Capitalizes the first letter of each word in the input string.
+
+    Parameters:
+    s (str): The input string.
+
+    Returns:
+    str: The input string with the first letter of each word capitalized.
+
+    Examples:
+    capitalize_words("this is a test string")
+    """
+
+    # Split the string into a list of words
+    words = s.split()
+
+    # Capitalize the first letter of each word
+    capitalized_words = [word[0].upper() + word[1:].lower() for word in words]
+
+    # Join the list of capitalized words back into a single string
+    return ' '.join(capitalized_words)
