@@ -3,7 +3,105 @@ import numpy.matlib
 import pyperm as pr
 import statsmodels.api as sm
 
-import statsmodels.api as sm
+
+def glm_perm(y, Z, X, distbn, linkfn):
+    """ glm_perm runs sign-flipping pemrutations for generalized linear model
+    Inputs:
+
+        y: a numpy array of shape (n_samples, n_voxels) representing the
+            dependent variable
+        X: a numpy array of shape (n_samples, n_parameters) representing the
+            independent variables
+        distbn: a string specifying the distribution of the response variable.
+            Must be one of ['Binomial', 'Gamma', 'Gaussian', 'Inverse Gaussian'
+                                            , 'Negative Binomial', 'Poisson']
+        linkfn: a string specifying the link function. Must be one of ['log',
+                'logit', 'probit', 'cauchy', 'cloglog', 'identity', 'inverse']
+    Output:
+
+    Examples:
+    -----------------
+    """
+
+
+def compute_scores_mv(y, Z, X, distbn, linkfn):
+    """ 
+    Inputs:
+        y: a numpy matrix of shape(n_samples, n_voxels) representing the
+            dependent variable
+        X: a numpy array of shape(n_samples, n_parameters) representing the
+            independent variables
+        distbn: a string specifying the distribution of the response variable.
+            Must be one of['Binomial', 'Gamma', 'Gaussian', 'Inverse Gaussian',
+                                               'Negative Binomial', 'Poisson']
+        linkfn: a string specifying the link function. Must be one of['log',
+                'logit', 'probit', 'cauchy', 'cloglog', 'identity', 'inverse']
+    Output:
+
+    Examples:
+    -----------------
+
+
+"""
+    betahat_0, fitted_values_0 = pr.glm_seq(y, Z, distbn, linkfn)
+
+    XZ_design = np.concatenate((Z, X), axis=1)
+    betahat_1, fitted_values_1 = pr.glm_seq(y, XZ_design, distbn, linkfn)
+
+    nvox = y.shape[1]
+    nsubj = y.shape[0]
+    p = X.shape[1]
+
+    # Compute the scores
+    scores = np.zeros((nvox, p, nsubj))
+    for i in range(nvox):
+        yvox = np.matrix(y[:, i]).T
+        fitted_0_vox = np.matrix(fitted_values_0[:, i]).T
+        fitted_1_vox = np.matrix(fitted_values_1[:, i]).T
+        scores[i, :, :] = pr.compute_scores(yvox, Z, X, fitted_0_vox,
+                                            fitted_1_vox, 'binomial', 'logit')
+
+    return scores
+
+
+def compute_scores(y, Z, X, fitted_values_0, fitted_values, family, link, score_type='effective'):
+    nsubj = y.shape[0]
+
+    # Obtain the derivative and variance evaluated at the fitted values
+    Dhat0, Vhat0 = pr.get_par_expo_fam(fitted_values_0, family, link)
+
+    # Initialize the weights matrix to be ones for now - this may change!
+    W = Dhat0**2/Vhat0
+    sqrtW = np.matrix(np.sqrt(W)).T
+
+    # Compute the inverse square root of V
+    sqrtinvVvect = Vhat0**(-0.5)
+
+    # Obtain the residuals
+    null_residuals = (y-fitted_values_0)
+
+    sqrtinvVvect_times_residuals = np.multiply(sqrtinvVvect, null_residuals)
+
+    if score_type == 'effective':
+        A = np.multiply(Z.T, sqrtW)  # calculate Z transpose times diag(sqrtW)
+        XTsqrtW = np.multiply(X.T, sqrtW)
+        H = A.T @ np.linalg.inv(A @ A.T) @ A
+        scores = np.multiply(XTsqrtW @ (np.identity(nsubj) - H),
+                             sqrtinvVvect_times_residuals.T/(nsubj**0.5))
+
+        # second_half_of_score_expression = @ sqrtinvVvect_times_residuals/(nsubj**0.5)
+        # out = H @
+        # return sqrtW, second_half_of_score_expression, out
+        # scores = np.multiply(X.T, np.multiply(
+        #    sqrtW, second_half_of_score_expression.T))
+        # the above uses the fact that X^TY = \sum_i x_iy_i
+
+        # This calculates S (from p5 of Riccardo's paper)
+        # B = np.multiply(X.T, sqrtW)  # calculate X transpose times diag(sqrtW)
+        # scores = B @ (np.identity(nsubj) -
+        #              H) @ sqrtinvVvect_times_residuals/(nsubj**0.5)
+
+    return scores
 
 
 def glm_seq(y, X, distbn, linkfn):
@@ -65,7 +163,7 @@ def glm_seq(y, X, distbn, linkfn):
     gamma = np.random.randn(*(nvoxels, nparameters)).T
     p = pr.sigmoid(X @ gamma)
     y = np.random.binomial(1, p)
-    gammahat, fitted_values = glm_seq(y, X, 'Binomial', 'logit')
+    gammahat, fitted_values = pr.glm_seq(y, X, 'Binomial', 'logit')
 
     # Many voxel example
     nvoxels = 10000
@@ -84,7 +182,7 @@ def glm_seq(y, X, distbn, linkfn):
     link_fn = getattr(sm.families.links, linkfn)
     link = link_fn()
 
-    family_fn = getattr(sm.families, distbn)
+    family_fn = getattr(sm.families, distbn.capitalize())
     family = family_fn(link=link)
 
     if y.ndim == 1:
@@ -203,9 +301,12 @@ def get_par_expo_fam(fitted_values, family, link):
                     'cloglog', 'probit', or 'cauchit'
 
     Returns:
-        tuple: a tuple containing the derivative of the link function and the 
-        variance function at the fitted values.
+        tuple: a tuple containing Dhat: derivative of the link function and
+        Vhat: the variance function at the fitted values.
+
+    Examples
     """
+    fitted_values = np.array(fitted_values)
     if family == 'gaussian':
         def var_fn(x): return 0*x + 1
     elif family == 'binomial':
@@ -221,45 +322,46 @@ def get_par_expo_fam(fitted_values, family, link):
     Vhat = var_fn(fitted_values)
 
     # Get the derivative of the link function
-    _, link_fn_deriv, _ = get_linkfn(link)
+    link_fn, link_fn_deriv, _ = get_linkfn(link)
 
     # Compute the derivative of the link at the fitted values
-    Dhat = link_fn_deriv(fitted_values)
+    Dhat = link_fn_deriv(link_fn(fitted_values))
 
     return Dhat, Vhat
 
 
 def get_linkfn(link):
     if link == 'identity':
+        def link_fn_inv(x): return x
+        def link_fn_inv_deriv(x): return 1
         def link_fn(x): return x
-        def link_fn_deriv(x): return 1
-        def link_inv(x): return x
     elif link == 'log':
-        def link_fn(x): return np.exp(x)
-        def link_fn_deriv(x): return np.exp(x)
-        def link_inv(x): return np.log(x)
+        def link_fn_inv(x): return np.exp(x)
+        def link_fn_inv_deriv(x): return np.exp(x)
+        def link_fn(x): return np.log(x)
     elif link == 'logit':
-        def link_fn(x): return np.exp(x)/(1 + np.exp(x))
-        def link_fn_deriv(x): return np.exp(x)/(1 + np.exp(x)) - \
-            np.exp(x)*np.exp(x)/(1 + np.exp(x))**2
+        def link_fn_inv(x): return np.exp(x)/(1 + np.exp(x))
+        def link_fn_inv_deriv(x): return np.exp(x)/(1+np.exp(x))**2
+        # def link_fn_inv_deriv(x): return np.exp(x)/(1 + np.exp(x)) - \
+        # np.exp(x)*np.exp(x)/(1 + np.exp(x))**2
 
-        def link_inv(x): return 1 / (1 + np.exp(-x))
+        def link_fn(x): return np.log(x/(1-x))
     elif link == 'cloglog':
-        def link_fn(x): return 1 - np.exp(-np.exp(x))
+        def link_fn_inv(x): return 1 - np.exp(-np.exp(x))
         def link_fn_deriv(x): return np.exp(-np.exp(x))*np.exp(x)
-        # link_inv =
+        # link_fn =
     elif link == 'probit':
-        def link_fn(x): return np.exp(-x ^ 2/2)/np.sqrt(2*np.pi)
+        def link_fn_inv(x): return np.exp(-x ^ 2/2)/np.sqrt(2*np.pi)
         # link_fn_deriv =
-        # link_inv =
+        # link_fn =
     elif link == 'cauchit':
-        def link_fn(x): return 1/(np.pi*(1+x**2))
+        def link_fn_inv(x): return 1/(np.pi*(1+x**2))
         # link_fn_deriv =
         # link_inv =
     else:
         raise Exception('The link function must be one of the specified ones')
 
-    return link_fn, link_fn_deriv, link_inv
+    return link_fn, link_fn_inv_deriv, link_fn_inv
 
 
 def sigmoid(x): return 1 / (1 + np.exp(-x))
