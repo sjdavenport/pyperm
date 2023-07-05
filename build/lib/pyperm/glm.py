@@ -5,7 +5,7 @@ import statsmodels.api as sm
 import warnings
 
 
-def glm_perm(y, Z, X, distbn, link, scores=None, nperm=1000, alpha=0.05):
+def glm_perm(y, Z, X, distbn, link, nperm=1000, alpha=0.05):
     """ glm_perm runs sign-flipping pemrutations for generalized linear model
     Inputs:
 
@@ -122,21 +122,20 @@ def compute_scores_mv(y, Z, X, distbn, link):
     distbn = 'binomial'
     linkfn = 'logit'
 
-    scores, _, _ = pr.compute_scores_mv(y, Z, X, distbn, linkfn)
+    scores, _ = pr.compute_scores_mv(y, Z, X, distbn, link)
 """
     betahat_0, fitted_values_0, psZ, _ = pr.glm_seq(
         y, Z, distbn, link, 'Fitting null glm model, progress:')
     glm0 = [betahat_0, fitted_values_0, psZ]
 
-    #XZ_design = np.concatenate((Z, X), axis=1)
-    # print('')
-    # betahat_1, fitted_values_1, psX, _ = pr.glm_seq(
-    #    y, XZ_design, distbn, link, 'Fitting full glm model, progress:')
-    #glm1 = [betahat_1, fitted_values_1, psX]
+    XZ_design = np.concatenate((Z, X), axis=1)
+    print('')
+    betahat_1, fitted_values_1, psX, _ = pr.glm_seq(
+        y, XZ_design, distbn, link, 'Fitting full glm model, progress:')
+    glm1 = [betahat_1, fitted_values_1, psX]
 
     # Combine the perfect separations locations into a single vector
-    pslocs = np.where(psZ)[0]
-    #pslocs = np.unique(np.concatenate((np.where(psZ)[0], np.where(psX)[0])))
+    pslocs = np.unique(np.concatenate((np.where(psZ)[0], np.where(psX)[0])))
 
     # Get the important constants
     nvox = y.shape[1]
@@ -151,13 +150,14 @@ def compute_scores_mv(y, Z, X, distbn, link):
         # yvox = np.matrix(y[:, i]).T
         yvox = y[:, i]
         fitted_0_vox = np.matrix(fitted_values_0[:, i]).T
-        scores[i, :, :] = pr.compute_scores(
-            yvox, Z, X, fitted_0_vox, distbn, link, 'effective')
+        fitted_1_vox = np.matrix(fitted_values_1[:, i]).T
+        scores[i, :, :] = pr.compute_scores(yvox, Z, X, fitted_0_vox,
+                                            fitted_1_vox, distbn, link, 'effective')
 
-    return scores, pslocs, glm0
+    return scores, pslocs, glm0, glm1
 
 
-def compute_scores_from_glm(y, Z, X, pslocs, fitted_values_0, distbn, link, score_type='effective'):
+def compute_scores_from_glm(y, Z, X, pslocs, fitted_values_0, fitted_values, distbn, link, score_type='effective'):
     """
    Inputs:
      y: a numpy matrix of shape(n_samples, 1) representing the
@@ -187,13 +187,14 @@ def compute_scores_from_glm(y, Z, X, pslocs, fitted_values_0, distbn, link, scor
         # yvox = np.matrix(y[:, i]).T
         yvox = y[:, i]
         fitted_0_vox = np.matrix(fitted_values_0[:, i]).T
+        fitted_1_vox = np.matrix(fitted_values[:, i]).T
         scores[i, :, :] = pr.compute_scores(
-            yvox, Z, X, fitted_0_vox, distbn, link, score_type)
+            yvox, Z, X, fitted_0_vox, fitted_1_vox, distbn, link, score_type)
 
     return scores
 
 
-def compute_scores(y, Z, X, fitted_values_0, family, link, score_type='effective'):
+def compute_scores(y, Z, X, fitted_values_0, fitted_values, family, link, score_type='effective'):
     """
    Inputs:
      y: a numpy matrix of shape(n_samples, 1) representing the
@@ -210,7 +211,6 @@ def compute_scores(y, Z, X, fitted_values_0, family, link, score_type='effective
      linkfn: a string specifying the link function. Must be one of['log',
                 'logit', 'probit', 'cauchy', 'cloglog', 'identity', 'inverse']
     """
-    # Doesn't seem like the fitted_values are being used, double check in own time and then fix this!
     nsubj = y.shape[0]
 
     # Obtain the derivative and variance evaluated at the fitted values

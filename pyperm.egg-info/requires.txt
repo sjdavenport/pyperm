@@ -1,0 +1,7 @@
+numpy
+sanssouci
+matplotlib
+sklearn
+scipy
+scikit-image
+nilearn
