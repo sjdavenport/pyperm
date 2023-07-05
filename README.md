@@ -1,6 +1,6 @@
 # PyPerm
 This package performs inference on in high-dimensional linear models using permutation and the bootstrap. In particular it provides post-hoc inference for multiple testing methods when considering multiple contrasts. This package is written together with the [SanSouci](https://github.com/pneuvial/sanssouci.python) python package which performs post-hoc inference when the exchangeability hypothesis holds. For further details on the methodology and relevant papers
-see https://www.math.univ-toulouse.fr/~pneuvial/sanssouci.html and our upcoming pre-print.
+see https://www.math.univ-toulouse.fr/~pneuvial/sanssouci.html and our preprint: https://arxiv.org/abs/2208.13724.
 
 ## Table of contents
 * [Getting Started](#folderstruct)
