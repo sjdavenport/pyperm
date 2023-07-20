@@ -491,6 +491,7 @@ def combine_arrays(arrays):
 
 
 def list_files(directory, search_string, add_dir=0):
+    # pr.list_files('./', '.nii', 1)
     file_list = []
     for root, dirs, files in os.walk(directory):
         for file_name in files:
