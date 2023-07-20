@@ -3,10 +3,11 @@ Functions to control the fdr
 """
 import numpy as np
 import pyperm as pr
+import sanssouci as sa
 
 
 def fdr_bh(pvalues, alpha=0.05):
-    """ fdr_bh( pvalues, alpha ) implements the Benjamini-Hochberg procedure on 
+    """ fdr_bh( pvalues, alpha ) implements the Benjamini-Hochberg procedure on
     a numpy array of pvalues, controlling the FDR to a level alpha
 
     Parameters
@@ -80,38 +81,38 @@ def fdr_bh(pvalues, alpha=0.05):
 
 
 def step_down(permuted_pvals, alpha=0.1, max_number_of_steps=50, do_fwer=1, template='linear'):
-    """ step_down implements the general step down algorithm and the step down 
+    """ step_down implements the general step down algorithm and the step down
     algorithm from Blanchard et al 2020 and Davenport et al 2022.
 
     Parameters
     ----------
     permuted_pvals: np.ndarry,
         of size (B,m) where B is the number of bootstraps/permutations and m is
-        the number of hypotheses. This contains the permuted p-values from 
-        applying the bootstrap or permutation JER control methods (e.g. via 
+        the number of hypotheses. This contains the permuted p-values from
+        applying the bootstrap or permutation JER control methods (e.g. via
         pr.boot_contrasts). Importantly the first row of this matrix must
         correspond to the original p-values, and the remainder to permuted
         p-values. As the first permutation is always taken to be the original
         data.
     alpha:   float,
-        the alpha level at which to control the false positive rate. Typically 
-        either taken to be 0.05 or 0.1 (but of course other values are just as 
-        reasonable). 
+        the alpha level at which to control the false positive rate. Typically
+        either taken to be 0.05 or 0.1 (but of course other values are just as
+        reasonable).
     max_number_of_steps:   int,
-        giving the maximum number of iterations you're willing to go through 
+        giving the maximum number of iterations you're willing to go through
         before terminating
     do_fwer:  bool,
-        determining whether to do the joint step down procedure or just the 
+        determining whether to do the joint step down procedure or just the
         fwer step down procedure. Default is the fwer one, i.e. True!
     template:   char,
-        a character array specifying the type of template to use. Default is 
+        a character array specifying the type of template to use. Default is
         'linear', i.e. yielding the linear template.
 
     Returns
     -------
     alpha_quantile: float,
         the alpha quantile of the minimum of the pvalues over the step downed
-        set in the fwer case OR 
+        set in the fwer case OR
         the alpha quantile of the pivotal statistics in the jer case
     stepdownset: np.ndarray
         a vector giving the indices of the elements of the step down set!
@@ -121,12 +122,16 @@ def step_down(permuted_pvals, alpha=0.1, max_number_of_steps=50, do_fwer=1, temp
 
     # With signal
     lat_data = pr.statnoise(dim,nsubj,fwhm)
-    lat_data, signal = pr.random_signal_locations(lat_data, categ, contrast_matrix, pi0, rng = rng)
+    lat_data, signal = pr.random_signal_locations(
+        lat_data, categ, contrast_matrix, pi0, rng = rng)
 
     # With no signal
-    dim = (10,10); N = 30; categ = np.random.multinomial(2, [1/3,1/3,1/3], size = N)[:,1]
-    X = pr.group_design(categ); C = np.array([[1,-1,0],[0,1,-1]]); lat_data = pr.wfield(dim,N)
-    minP, orig_pvalues, pivotal_stats, bootstore = pr.boot_contrasts(lat_data, X, C, store_boots = 1)
+    dim = (10,10); N = 30; categ = np.random.multinomial(
+        2, [1/3,1/3,1/3], size = N)[:,1]
+    X = pr.group_design(categ); C = np.array(
+        [[1,-1,0],[0,1,-1]]); lat_data = pr.wfield(dim,N)
+    minP, orig_pvalues, pivotal_stats, bootstore = pr.boot_contrasts(
+        lat_data, X, C, store_boots = 1)
     lambda_quant, stepdownset = pr.step_down( bootstore )
     """
     # Calculate the number of bootstraps and the number of p-values
@@ -192,3 +197,36 @@ def step_down(permuted_pvals, alpha=0.1, max_number_of_steps=50, do_fwer=1, temp
             no_of_steps += 1
 
     return alpha_quantile, stepdownset
+
+
+def get_bounds(pvalue_subset, lambda_quant, nhypotheses):
+    """ get_bounds( pvalues, alpha )
+
+    Parameters
+    ----------
+    pvalue_subset  np.ndarry,
+        of a subset of pvalues on which TDP bounds are desired
+    lambda_quant,  float
+        the lambda quantile of the pivotal statistics
+    nhypotheses, int
+        the number of total hypotheses being tested
+
+    Returns
+    -------
+    bounds
+
+    Examples
+    --------
+
+    """
+    thr = sa.linear_template(lambda_quant, nhypotheses, nhypotheses)
+
+    npvals = len(pvalue_subset)
+
+    FP_bound = sa.max_fp(pvalue_subset, thr)
+    TP_bound = npvals - FP_bound
+
+    FDP_bound = FP_bound/npvals
+    TDP_bound = TP_bound/npvals
+
+    return FP_bound, TP_bound, FDP_bound, TDP_bound

@@ -3,6 +3,8 @@
 A file contain statistics functions
 """
 # Import statements
+import fnmatch
+import os
 from time import sleep
 import sys
 import numpy as np
@@ -486,3 +488,12 @@ def combine_arrays(arrays):
         return np.array([])
     else:
         return np.concatenate(non_zero_arrays)
+
+
+def list_files(directory, search_string):
+    file_list = []
+    for root, dirs, files in os.walk(directory):
+        for file_name in files:
+            if fnmatch.fnmatch(file_name, f'*{search_string}*'):
+                file_list.append(file_name)
+    return file_list

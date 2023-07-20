@@ -7,7 +7,8 @@ import sanssouci as sa
 from sklearn.utils import check_random_state
 from scipy.stats import t
 
-def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps = 1000, template = 'linear', replace = True, store_boots = 0, display_progress = 0):
+
+def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps=1000, template='linear', replace=True, store_boots=0, display_progress=0, doonesample=0):
     """ A function to compute the voxelwise t-statistics for a set of contrasts
       and their (two-sided) p-value by bootstrapping the residuals
 
@@ -69,7 +70,7 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps = 1000, templ
     X = pr.group_design(categ); C = np.array([[1,-1,0],[0,1,-1]]); lat_data = pr.wfield(dim,N)
     minP, orig_pvalues, pivotal_stats, _ = pr.boot_contrasts(lat_data, X, C)
     """
-    #### Prep
+    # Prep
     # Convert the data to be a field if it is not one already
     if isinstance(lat_data, np.ndarray):
         lat_data = pr.make_field(lat_data)
@@ -79,7 +80,8 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps = 1000, templ
         raise Exception("The fibersize of the field must be 1 dimensional")
 
     # Error check the inputs and obtain the size of X
-    contrast_matrix, nsubj, n_params = pr.contrast_error_checking(lat_data,design,contrast_matrix)
+    contrast_matrix, nsubj, n_params = pr.contrast_error_checking(
+        lat_data, design, contrast_matrix)
 
     # Obtain the inverse template function (allowing for direct input as well!)
     if isinstance(template, str):
@@ -87,7 +89,7 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps = 1000, templ
     else:
         t_inv = template
 
-    #### Main Function
+    # Main Function
     # Set random state
     rng = check_random_state(101)
 
@@ -97,25 +99,29 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps = 1000, templ
     # Initialize a vector to store the minimum p-value for each permutation
     minp_perm = np.zeros(n_bootstraps)
 
-    # Calculate the original statistic (used a the first permutation)
-    orig_tstats, residuals, _ = pr.contrast_tstats_noerrorchecking(lat_data, design, contrast_matrix)
+    # Calculate the original statistic (for the first permutation)
+    orig_tstats, residuals, _ = pr.contrast_tstats_noerrorchecking(
+        lat_data, design, contrast_matrix)
 
     # Initialize the p-value field
     orig_pvalues = orig_tstats
 
     # Calculate the p-values
     # (using abs and multiplying by 2 to obtain the two-sided p-values)
-    orig_pvalues.field = 2*(1 - t.cdf(abs(orig_tstats.field), nsubj-n_params))
+    #orig_pvalues.field = 2*(1 - t.cdf(abs(orig_tstats.field), nsubj-n_params))
+    orig_pvalues.field = pr.tstat2pval(
+        orig_tstats.field, nsubj-n_params, doonesample)
 
     # Note need np.ravel as the size of orig_pvalues.field is (dim, L) i.e. it's not a vector!
     orig_pvalues_vec = np.ravel(orig_pvalues.field)
     orig_pvalues_sorted = np.array([np.sort(orig_pvalues_vec)])
 
     # Get the minimum p-value over voxels and contrasts (include the orignal in the permutation set)
-    minp_perm[0] = orig_pvalues_sorted[0,0]
+    minp_perm[0] = orig_pvalues_sorted[0, 0]
 
     # Obtain the pivotal statistic used for JER control
-    pivotal_stats[0] = sa.get_pivotal_stats(orig_pvalues_sorted, inverse_template=t_inv)
+    pivotal_stats[0] = sa.get_pivotal_stats(
+        orig_pvalues_sorted, inverse_template=t_inv)
 
     # Initialize the bootstrap storage!
     bootstore = 0
@@ -124,7 +130,7 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps = 1000, templ
         n_contrasts = contrast_matrix.shape[0]
         masksize_product = np.prod(lat_data.masksize)
         bootstore = np.zeros((n_contrasts*masksize_product, n_bootstraps))
-        bootstore[:,0] = orig_pvalues_vec
+        bootstore[:, 0] = orig_pvalues_vec
 
     # Calculate permuted stats
     # note uses the no error checking version so that the errors are not checked
@@ -134,36 +140,43 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps = 1000, templ
 
         # Display progress
         if display_progress:
-            pr.modul(b, 1)
+            pr.loader(b, n_bootstraps-1)
+            #pr.modul(b, 1)
 
         # Obtain a sample with replacement
-        shuffle_idx = rng.choice(nsubj, nsubj, replace = replace)
-        lat_data_perm.field = residuals[...,shuffle_idx]
-        permuted_tstats, _, _ = pr.contrast_tstats_noerrorchecking(lat_data_perm, design, contrast_matrix)
+        shuffle_idx = rng.choice(nsubj, nsubj, replace=replace)
+        lat_data_perm.field = residuals[..., shuffle_idx]
+        permuted_tstats, _, _ = pr.contrast_tstats_noerrorchecking(
+            lat_data_perm, design, contrast_matrix)
 
         # Compute the permuted p-values
         # (using abs and multiplying by 2 to obtain the two-sided p-values)
-        permuted_pvalues = 2*(1 - t.cdf(abs(permuted_tstats.field), nsubj-n_params))
+        # permuted_pvalues = 2 * \
+        #    (1 - t.cdf(abs(permuted_tstats.field), nsubj-n_params))
+        permuted_pvalues = pr.tstat2pval(
+            permuted_tstats.field, nsubj-n_params, doonesample)
         permuted_pvalues_vec = np.ravel(permuted_pvalues)
         permuted_pvalues_sorted = np.array([np.sort(permuted_pvalues_vec)])
 
-        #Get the minimum p-value of the permuted data (over voxels and contrasts)
-        minp_perm[b+1] = permuted_pvalues_sorted[0,0]
+        # Get the minimum p-value of the permuted data (over voxels and contrasts)
+        minp_perm[b+1] = permuted_pvalues_sorted[0, 0]
 
-        #Obtain the pivotal statistic - of the permuted data - needed for JER control
+        # Obtain the pivotal statistic - of the permuted data - needed for JER control
         # i.e. min_{1 \leq k \leq K} t_k^(-1)(p_{(k:m)})
-        pivotal_stats[b + 1] = sa.get_pivotal_stats(permuted_pvalues_sorted, inverse_template=t_inv)
+        pivotal_stats[b + 1] = sa.get_pivotal_stats(
+            permuted_pvalues_sorted, inverse_template=t_inv)
         # could be adjusted for K not m or in general some set A! (i.e. in the step down process)
 
         if store_boots:
-            bootstore[:,b+1] = permuted_pvalues_vec
+            bootstore[:, b+1] = permuted_pvalues_vec
 
     # Transpose bootstore so that it is B by m
     bootstore = np.transpose(bootstore)
-    
+
     return [minp_perm, orig_pvalues, pivotal_stats, bootstore]
 
-def bootfpr(dim, nsubj, contrast_matrix, fwhm = 0, design = 0, n_bootstraps = 100, niters = 1000, pi0 = 1, simtype = 1, alpha = 0.1, template = 'linear', replace = True, do_sd = 1):
+
+def bootfpr(dim, nsubj, contrast_matrix, fwhm=0, design=0, n_bootstraps=100, niters=1000, pi0=1, simtype=1, alpha=0.1, template='linear', replace=True, do_sd=1):
     """ A function which calculates FWER and JER error rates using niters iterations
 
     Parameters
@@ -233,7 +246,7 @@ def bootfpr(dim, nsubj, contrast_matrix, fwhm = 0, design = 0, n_bootstraps = 10
     FWER_FPR, JER_FPR = pr.bootfpr(dim, nsubj, C, 8, 0, 100, 1000, 0.8)
     """
     # Initialize the FPR counter
-    n_falsepositives_jer = 0 # jer stands for joint error rate here
+    n_falsepositives_jer = 0  # jer stands for joint error rate here
     n_falsepositives_fwer = 0
     n_falsepositives_fwer_sd = 0
     n_falsepositives_jer_sd = 0
@@ -270,79 +283,84 @@ def bootfpr(dim, nsubj, contrast_matrix, fwhm = 0, design = 0, n_bootstraps = 10
     # Calculate the FPR
     for i in np.arange(niters):
         # Keep track of the progress.
-        pr.modul(i,100)
+        pr.modul(i, 100)
 
         # Generate the data (i.e. generate stationary random fields)
-        lat_data = pr.statnoise(dim,nsubj,fwhm)
+        lat_data = pr.statnoise(dim, nsubj, fwhm)
 
         if isinstance(design, int):
             # Generate a random category vector with choices given by the design matrix
-            categ = rng.choice(n_groups, nsubj, replace = True)
+            categ = rng.choice(n_groups, nsubj, replace=True)
 
             # Ensure that all categories are present in the category vector
             while len(np.unique(categ)) < n_groups:
                 print('had rep error')
-                categ = rng.choice(n_groups, nsubj, replace = True)
+                categ = rng.choice(n_groups, nsubj, replace=True)
 
             # Generate the corresponding design matrix
             design_2use = pr.group_design(categ)
 
         # Add random signal to the data
-        lat_data, signal = pr.random_signal_locations(lat_data, categ, contrast_matrix, pi0, rng = rng)
+        lat_data, signal = pr.random_signal_locations(
+            lat_data, categ, contrast_matrix, pi0, rng=rng)
 
         # Convert the signal to boolean
         signal.field = signal.field == 0
-        
+
         # Run the bootstrap/ARI/Simes
         if simtype == 1:
             # Implement the bootstrap algorithm on the generated data
-            minp_perm, orig_pvalues, pivotal_stats, bootstore = pr.boot_contrasts(lat_data, design_2use, contrast_matrix, n_bootstraps, t_inv, replace, store_boots = do_sd)
-            
-            # Calculate the alpha quantile of the permutation distribution of 
+            minp_perm, orig_pvalues, pivotal_stats, bootstore = pr.boot_contrasts(
+                lat_data, design_2use, contrast_matrix, n_bootstraps, t_inv, replace, store_boots=do_sd)
+
+            # Calculate the alpha quantile of the permutation distribution of
             # the minimum needed for FWER control
             alpha_quantile = np.quantile(minp_perm, alpha)
-            
+
             # Calculate the lambda alpha level quantile for JER control
             lambda_quant = np.quantile(pivotal_stats, alpha)
-            
+
             # Run step down (if specified)
             if do_sd:
-                # Run JER step down (using the alpha quantile of the 
+                # Run JER step down (using the alpha quantile of the
                 # minimum pivotal statistic to calculate a threshold)
-                lambda_quant_sd, _ = pr.step_down( bootstore, alpha = alpha, 
-                                              do_fwer = 0, template = template)
-                # Run FWER step down (using the minimum pvalue to calculate a 
+                lambda_quant_sd, _ = pr.step_down(bootstore, alpha=alpha,
+                                                  do_fwer=0, template=template)
+                # Run FWER step down (using the minimum pvalue to calculate a
                 # threshold)
-                alpha_quantile_sd, _ = pr.step_down( bootstore, alpha = alpha, 
-                                              do_fwer = 1, template = template)
-                
+                alpha_quantile_sd, _ = pr.step_down(bootstore, alpha=alpha,
+                                                    do_fwer=1, template=template)
+
         elif simtype == 0:
             # NOT YET READY
-            perm_contrasts(lat_data, design_2use, contrast_matrix, n_bootstraps, t_inv)
+            perm_contrasts(lat_data, design_2use,
+                           contrast_matrix, n_bootstraps, t_inv)
         else:
             # Calculate the p-values
-            orig_tstats, _, _ = pr.contrast_tstats_noerrorchecking(lat_data, design_2use, contrast_matrix)
+            orig_tstats, _, _ = pr.contrast_tstats_noerrorchecking(
+                lat_data, design_2use, contrast_matrix)
             n_params = design_2use.shape[1]
             orig_pvalues = pr.tstat2pval(orig_tstats, nsubj - n_params)
-            
+
             lambda_quant = alpha
             alpha_quantile = alpha/m
-            
+
             if do_sd:
                 # Calculate the hommel value for implementing ARI
-                hommel_value = pr.compute_hommel_value(np.ravel(orig_pvalues.field), alpha)
-                
+                hommel_value = pr.compute_hommel_value(
+                    np.ravel(orig_pvalues.field), alpha)
+
                 # Calculate the alpha quantile for FWER control
                 lambda_quant_sd = lambda_quant/(hommel_value/m)
                 alpha_quantile_sd = alpha/hommel_value
-        
+
         # Calculate the null p-values
         null_pvalues = np.sort(orig_pvalues.field[signal.field])
-        
+
         # Calculate the pivotal statistic on the original data
         null_pvalues_tinv = t_inv_all(null_pvalues, m)
         null_pivotal_statistic = np.amin(null_pvalues_tinv)
-        
+
         # Deprecated calculation:
         #extended_null_pvalues = np.ones(m)
         #extended_null_pvalues[0:len(null_pvalues)] = null_pvalues
@@ -378,30 +396,33 @@ def bootfpr(dim, nsubj, contrast_matrix, fwhm = 0, design = 0, n_bootstraps = 10
 
     # Calculate the standard error
     std_error_jer = 1.96*np.sqrt(fpr_jer*(1-fpr_jer)/niters)
-    
+
     # Print the results
-    print('FWER: ', fpr_fwer, ' +/- ', round(std_error_fwer,4))
-    print('JER: ', fpr_jer, ' +/- ', round(std_error_jer,4))
-    
+    print('FWER: ', fpr_fwer, ' +/- ', round(std_error_fwer, 4))
+    print('JER: ', fpr_jer, ' +/- ', round(std_error_jer, 4))
+
     if do_sd:
         # Calculate the step down FWER
         fpr_fwer_sd = n_falsepositives_fwer_sd/niters
         std_error_fwer_sd = 1.96*np.sqrt(fpr_fwer_sd*(1-fpr_fwer_sd)/niters)
-        
+
         # Calculate the step down JER
         fpr_jer_sd = n_falsepositives_jer_sd/niters
         std_error_jer_sd = 1.96*np.sqrt(fpr_jer_sd*(1-fpr_jer_sd)/niters)
 
         # Print the results
-        print('FWER step down: ', fpr_fwer_sd, ' +/- ', round(std_error_fwer_sd,4))
-        print('JER step down: ', fpr_jer_sd, ' +/- ', round(std_error_jer_sd,4))
+        print('FWER step down: ', fpr_fwer_sd,
+              ' +/- ', round(std_error_fwer_sd, 4))
+        print('JER step down: ', fpr_jer_sd,
+              ' +/- ', round(std_error_jer_sd, 4))
     else:
         fpr_jer_sd = -1
         fpr_fwer_sd = -1
 
     return fpr_fwer, fpr_jer, fpr_fwer_sd, fpr_jer_sd
 
-def perm_contrasts(lat_data, design, contrast_vector, n_bootstraps = 100, template = 'linear'):
+
+def perm_contrasts(lat_data, design, contrast_vector, n_bootstraps=100, template='linear'):
     """ A function to compute the voxelwise t-statistics for a set of contrasts
       and their p-value using Manly type permutation
 
@@ -436,7 +457,8 @@ def perm_contrasts(lat_data, design, contrast_vector, n_bootstraps = 100, templa
         lat_data = pr.make_field(lat_data)
 
     # Error check the inputs and obtain the size of X
-    contrast_vector, nsubj, n_params = pr.contrast_error_checking(lat_data,design,contrast_vector)
+    contrast_vector, nsubj, n_params = pr.contrast_error_checking(
+        lat_data, design, contrast_vector)
 
     if contrast_vector.shape[0] > 1:
         raise Exception('c must be a row vector')
@@ -448,7 +470,7 @@ def perm_contrasts(lat_data, design, contrast_vector, n_bootstraps = 100, templa
         # Allow the inverse function to be an input
         t_inv = template
 
-    ### Main
+    # Main
     # Set random state
     rng = check_random_state(101)
 
@@ -459,18 +481,20 @@ def perm_contrasts(lat_data, design, contrast_vector, n_bootstraps = 100, templa
     pivotal_stats = np.zeros(n_bootstraps)
 
     # Calculate the original statistic (used a the first permutation)
-    orig_tstats, _, _ = pr.contrast_tstats_noerrorchecking(lat_data, design, contrast_vector)
+    orig_tstats, _, _ = pr.contrast_tstats_noerrorchecking(
+        lat_data, design, contrast_vector)
     orig_pvalues = orig_tstats
-    orig_pvalues.field =  2*(1 - t.cdf(abs(orig_tstats.field), nsubj-n_params))
+    orig_pvalues.field = 2*(1 - t.cdf(abs(orig_tstats.field), nsubj-n_params))
 
     # Note need np.ravel as the size of orig_pvalues.field is (dim, 1) i.e. it's not a vector!
     orig_pvalues_sorted = np.array([np.sort(np.ravel(orig_pvalues.field))])
 
     # Get the minimum p-value over voxels and contrasts (include the orignal in the permutation set)
-    minp_perm[0] = orig_pvalues_sorted[0,0]
+    minp_perm[0] = orig_pvalues_sorted[0, 0]
 
     # Obtain the pivotal statistics
-    pivotal_stats[0] = sa.get_pivotal_stats(orig_pvalues_sorted, inverse_template=t_inv)
+    pivotal_stats[0] = sa.get_pivotal_stats(
+        orig_pvalues_sorted, inverse_template=t_inv)
 
     # Calculate permuted stats
     # note use the no error checking version so that the errors are not checked
@@ -478,14 +502,17 @@ def perm_contrasts(lat_data, design, contrast_vector, n_bootstraps = 100, templa
     for b in np.arange(n_bootstraps - 1):
         print(b)
         shuffle_idx = rng.permutation(nsubj)
-        permuted_tstats, _, _ = pr.contrast_tstats_noerrorchecking(lat_data, design[shuffle_idx, :], contrast_vector)
-        permuted_pvalues = 2*(1 - t.cdf(abs(permuted_tstats.field), nsubj-n_params))
+        permuted_tstats, _, _ = pr.contrast_tstats_noerrorchecking(
+            lat_data, design[shuffle_idx, :], contrast_vector)
+        permuted_pvalues = 2 * \
+            (1 - t.cdf(abs(permuted_tstats.field), nsubj-n_params))
         permuted_pvalues = np.array([np.sort(np.ravel(permuted_pvalues))])
 
-        #Get the minimum p-value of the permuted data (over voxels and contrasts)
-        minp_perm[b+1] = permuted_pvalues[0,0]
+        # Get the minimum p-value of the permuted data (over voxels and contrasts)
+        minp_perm[b+1] = permuted_pvalues[0, 0]
 
         # Get the pivotal statistics needed for JER control
-        pivotal_stats[b + 1] = sa.get_pivotal_stats(permuted_pvalues, inverse_template=t_inv)
+        pivotal_stats[b + 1] = sa.get_pivotal_stats(
+            permuted_pvalues, inverse_template=t_inv)
 
     return minp_perm, orig_pvalues, pivotal_stats

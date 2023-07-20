@@ -490,10 +490,13 @@ def combine_arrays(arrays):
         return np.concatenate(non_zero_arrays)
 
 
-def list_files(directory, search_string):
+def list_files(directory, search_string, add_dir=0):
     file_list = []
     for root, dirs, files in os.walk(directory):
         for file_name in files:
             if fnmatch.fnmatch(file_name, f'*{search_string}*'):
-                file_list.append(file_name)
+                if add_dir:
+                    file_list.append(directory+file_name)
+                else:
+                    file_list.append(file_name)
     return file_list
