@@ -19,7 +19,7 @@ setup(
         'scikit-image',
         'nilearn'
     ],
-    version = '0.0.2',
+    version = '0.0.3',
     license='MIT',
     author='Samuel DAVENPORT',
     download_url='https://github.com/sjdavenport/pyperm/',
