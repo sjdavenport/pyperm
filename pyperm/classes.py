@@ -48,7 +48,7 @@ class Field:
         masksize = mask.shape
 
         # Check that the mask is a boolean array
-        if mask.dtype != np.bool:
+        if mask.dtype != bool:
             raise Exception("The mask must be a boolean array")
 
         # Assign the dimension
