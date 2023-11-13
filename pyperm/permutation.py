@@ -283,7 +283,7 @@ def bootfpr(dim, nsubj, contrast_matrix, fwhm=0, design=0, n_bootstraps=100, nit
     # Calculate the FPR
     for i in np.arange(niters):
         # Keep track of the progress.
-        pr.modul(i, 100)
+        pr.modul(i, 1)
 
         # Generate the data (i.e. generate stationary random fields)
         lat_data = pr.statnoise(dim, nsubj, fwhm)

@@ -124,7 +124,7 @@ def compute_scores_mv(y, Z, X, distbn, link):
 
     scores, _, _ = pr.compute_scores_mv(y, Z, X, distbn, linkfn)
 """
-    betahat_0, fitted_values_0, psZ, _ = pr.glm_seq(
+    betahat_0, fitted_values_0, psZ, _, _ = pr.glm_seq(
         y, Z, distbn, link, 'Fitting null glm model, progress:')
     glm0 = [betahat_0, fitted_values_0, psZ]
 
@@ -203,7 +203,6 @@ def compute_scores(y, Z, X, fitted_values_0, family, link, score_type='effective
      X: a numpy array of shape(n_samples, n_parameters) representing the
             independent variables
      fitted_values_0:
-     fitted_values_1:
      family: a string specifying the distribution of the response variable.
             Must be one of['Binomial', 'Gamma', 'Gaussian', 'Inverse Gaussian',
                                                'Negative Binomial', 'Poisson']
@@ -227,11 +226,14 @@ def compute_scores(y, Z, X, fitted_values_0, family, link, score_type='effective
     null_residuals = (y-fitted_values_0)
 
     sqrtinvVvect_times_residuals = np.multiply(sqrtinvVvect, null_residuals)
-
+    print(sqrtW.shape)
+    print(X.shape)
+    print(Z.shape)
     if score_type == 'effective':
         A = np.multiply(Z.T, sqrtW)  # calculate Z transpose times diag(sqrtW)
         XTsqrtW = np.multiply(X.T, sqrtW)
         H = A.T @ np.linalg.inv(A @ A.T) @ A
+        print(XTsqrtW.shape)
         scores = np.multiply(XTsqrtW @ (np.identity(nsubj) - H),
                              sqrtinvVvect_times_residuals.T/(nsubj**0.5))
     return scores
@@ -266,7 +268,7 @@ def glm_seq(y, X, distbn, linkfn, progress_message='Progress:'):
     gamma = np.random.randn(nparameters)
     p = pr.sigmoid(X @ gamma)
     y = np.random.binomial(1, p)
-    gammahat, fitted_values, _, _ = pr.glm_seq(y, X, 'Binomial', 'logit')
+    gammahat, fitted_values, _, _, _ = pr.glm_seq(y, X, 'Binomial', 'logit')
     print(gammahat.T)
     print(gamma)
 
@@ -280,7 +282,7 @@ def glm_seq(y, X, distbn, linkfn, progress_message='Progress:'):
     gamma = np.random.randn(nparameters)
     p = pr.sigmoid(X @ gamma)
     y = np.random.binomial(1, p)
-    gammahat, fitted_values, _, _ = pr.glm_seq(y, X, 'Binomial', 'logit')
+    gammahat, fitted_values, _, _, _ = pr.glm_seq(y, X, 'Binomial', 'logit')
     print(gammahat.T)
     print(gamma)
 
@@ -295,7 +297,7 @@ def glm_seq(y, X, distbn, linkfn, progress_message='Progress:'):
     gamma = np.random.randn(*(nvoxels, nparameters)).T
     p = pr.sigmoid(X @ gamma)
     y = np.random.binomial(1, p)
-    gammahat, fitted_values, _, _ = pr.glm_seq(y, X, 'Binomial', 'logit')
+    gammahat, fitted_values, _, _, _ = pr.glm_seq(y, X, 'Binomial', 'logit')
 
     # Many voxel example
     nvoxels = 1000
@@ -308,7 +310,7 @@ def glm_seq(y, X, distbn, linkfn, progress_message='Progress:'):
     gamma = np.random.randn(*(nvoxels, nparameters)).T
     p = pr.sigmoid(X @ gamma)
     y = np.random.binomial(1, p)
-    gammahat, fitted_values, _, _ = pr.glm_seq(y, X, 'Binomial', 'logit')
+    gammahat, fitted_values, _, _, _ = pr.glm_seq(y, X, 'Binomial', 'logit')
 """
     # Obtain the sm link function
     link_fn = getattr(sm.families.links, linkfn)
@@ -328,6 +330,9 @@ def glm_seq(y, X, distbn, linkfn, progress_message='Progress:'):
 
     # Initialize an empty array to store the pvalues
     pvalues = np.empty((X.shape[1], nvox))
+
+    # Initialize an empty array to store the standard errors
+    std_errors = np.empty((X.shape[1], nvox))
 
     # Initialize the log-likelihood function
     llf = np.empty((1, nvox))[0]
@@ -356,6 +361,8 @@ def glm_seq(y, X, distbn, linkfn, progress_message='Progress:'):
 
             # Extract the coefficients and store them in betahat
             betahat[:, i] = result.params
+
+            std_errors[:, i] = result.bse
 
             # Extract the coefficients and store them in betahat
             pvalues[:, i] = result.pvalues
@@ -387,7 +394,7 @@ def glm_seq(y, X, distbn, linkfn, progress_message='Progress:'):
     # perfect_separations = np.unique(perfect_separations)
     # perfect_separations.sort()
 
-    return betahat, fitted_values, perfect_separations, pvalues
+    return betahat, fitted_values, perfect_separations, pvalues, std_errors
 
 
 def run_glm(y, X, nruns=100, learning_rate=0.01):
