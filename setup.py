@@ -14,7 +14,7 @@ setup(
         'numpy',
         'sanssouci',
         'matplotlib',
-        'sklearn',
+        'scikit-learn',
         'scipy',
         'scikit-image',
         'nilearn'
