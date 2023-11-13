@@ -48,7 +48,7 @@ class Field:
         masksize = mask.shape
 
         # Check that the mask is a boolean array
-        if mask.dtype != np.bool:
+        if mask.dtype != bool:
             raise Exception("The mask must be a boolean array")
 
         # Assign the dimension
@@ -137,7 +137,7 @@ class Field:
             raise ValueError("The size of the mask must be compatible with the field")
         elif (self.D == 1) and tuple(np.sort(value.shape)) != self.masksize:
             raise ValueError("The size of the mask must be compatible with the field")
-        if  value.dtype != np.bool:
+        if  value.dtype != bool:
             raise Exception("The mask must be a boolean array")
         self.__mask = value
         self.masksize = value.shape
