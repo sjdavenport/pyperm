@@ -108,7 +108,7 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps=1000, templat
 
     # Calculate the p-values
     # (using abs and multiplying by 2 to obtain the two-sided p-values)
-    #orig_pvalues.field = 2*(1 - t.cdf(abs(orig_tstats.field), nsubj-n_params))
+    # orig_pvalues.field = 2*(1 - t.cdf(abs(orig_tstats.field), nsubj-n_params))
     orig_pvalues.field = pr.tstat2pval(
         orig_tstats.field, nsubj-n_params, doonesample)
 
@@ -141,7 +141,7 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps=1000, templat
         # Display progress
         if display_progress:
             pr.loader(b, n_bootstraps-1)
-            #pr.modul(b, 1)
+            # pr.modul(b, 1)
 
         # Obtain a sample with replacement
         shuffle_idx = rng.choice(nsubj, nsubj, replace=replace)
@@ -176,7 +176,7 @@ def boot_contrasts(lat_data, design, contrast_matrix, n_bootstraps=1000, templat
     return [minp_perm, orig_pvalues, pivotal_stats, bootstore]
 
 
-def bootfpr(dim, nsubj, contrast_matrix, fwhm=0, design=0, n_bootstraps=100, niters=1000, pi0=1, simtype=1, alpha=0.1, template='linear', replace=True, do_sd=1):
+def bootfpr(dim, nsubj, contrast_matrix, fwhm=0, design=0, n_bootstraps=100, niters=1000, pi0=1, simtype=1, alpha=0.1, template='linear', replace=True, do_sd=1, rf='G', df=5):
     """ A function which calculates FWER and JER error rates using niters iterations
 
     Parameters
@@ -229,21 +229,21 @@ def bootfpr(dim, nsubj, contrast_matrix, fwhm=0, design=0, n_bootstraps=100, nit
     -----------------
     # 1D no signal
     dim = 5; nsubj = 30; C = np.array([[1,-1,0],[0,1,-1]]);
-    FWER_FPR, JER_FPR = pr.bootfpr(dim, nsubj, C)
+    fpr_fwer, fpr_jer, fpr_fwer_sd, fpr_jer_sd = pr.bootfpr(dim, nsubj, C)
 
     # 1D with signal
 
     # 2D bootstrapping
     dim = (10,10); nsubj = 30; C = np.array([[1,-1,0],[0,1,-1]]);
-    FWER_FPR, JER_FPR = pr.bootfpr(dim, nsubj, C)
+    fpr_fwer, fpr_jer, fpr_fwer_sd, fpr_jer_sd = pr.bootfpr(dim, nsubj, C, rf = 'T', df = 3)
 
     # 2D - parametric
     dim = (10,10); nsubj = 30; C = np.array([[1,-1,0],[0,1,-1]]);
-    FWER_FPR, JER_FPR = pr.bootfpr(dim, nsubj, C, simtype = -1)
+    fpr_fwer, fpr_jer, fpr_fwer_sd, fpr_jer_sd = pr.bootfpr(dim, nsubj, C, simtype = -1, rf = 'T', df = 3)
 
     # 2D with signal
     dim = (25,25); nsubj = 100; C = np.array([[1,-1,0],[0,1,-1]]);
-    FWER_FPR, JER_FPR = pr.bootfpr(dim, nsubj, C, 8, 0, 100, 1000, 0.8)
+    fpr_fwer, fpr_jer, fpr_fwer_sd, fpr_jer_sd = pr.bootfpr(dim, nsubj, C, 8, 0, 100, 1000, 0.8)
     """
     # Initialize the FPR counter
     n_falsepositives_jer = 0  # jer stands for joint error rate here
@@ -286,7 +286,7 @@ def bootfpr(dim, nsubj, contrast_matrix, fwhm=0, design=0, n_bootstraps=100, nit
         pr.modul(i, 1)
 
         # Generate the data (i.e. generate stationary random fields)
-        lat_data = pr.statnoise(dim, nsubj, fwhm)
+        lat_data = pr.statnoise(dim, nsubj, fwhm, rf=rf, df=df)
 
         if isinstance(design, int):
             # Generate a random category vector with choices given by the design matrix
@@ -362,11 +362,11 @@ def bootfpr(dim, nsubj, contrast_matrix, fwhm=0, design=0, n_bootstraps=100, nit
         null_pivotal_statistic = np.amin(null_pvalues_tinv)
 
         # Deprecated calculation:
-        #extended_null_pvalues = np.ones(m)
-        #extended_null_pvalues[0:len(null_pvalues)] = null_pvalues
-        #extended_null_pvalues_tinv = t_inv_all(extended_null_pvalues, mestimate)
-        #extended_null_pvalues_tinv = t_inv_all(extended_null_pvalues, m)
-        #null_pivotal_statistic = np.amin(extended_null_pvalues_tinv[0:len(null_pvalues)])
+        # extended_null_pvalues = np.ones(m)
+        # extended_null_pvalues[0:len(null_pvalues)] = null_pvalues
+        # extended_null_pvalues_tinv = t_inv_all(extended_null_pvalues, mestimate)
+        # extended_null_pvalues_tinv = t_inv_all(extended_null_pvalues, m)
+        # null_pivotal_statistic = np.amin(extended_null_pvalues_tinv[0:len(null_pvalues)])
 
         # Check whether there is a JER false rejection or not
         # Use pivotal_stats[0] since it corresponds to the original pivotal statistic

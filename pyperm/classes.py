@@ -4,6 +4,7 @@
 import numpy as np
 import pyperm as pr
 
+
 class Field:
     """ Field class
 
@@ -28,13 +29,13 @@ class Field:
     mask = np.ones((100, 1), dtype=bool)
     exField = pr.Field(field, mask)
     print(exField)
-    
+
     # 2D
     field = np.random.randn(100, 100, 30)
     mask = np.ones((100, 100), dtype=bool)
     exField = pr.Field(field, mask)
     print(exField)
-    
+
     # 2D no subjects
     field = np.random.randn(100, 100)
     mask = np.ones((100, 100), dtype=bool)
@@ -42,13 +43,14 @@ class Field:
     print(exField)
     -----------------------------------------------------------------------------
     """
+
     def __init__(self, field, mask):
         self.field = field
         self.fieldsize = field.shape
         masksize = mask.shape
 
         # Check that the mask is a boolean array
-        if mask.dtype != np.bool:
+        if mask.dtype != bool:
             raise Exception("The mask must be a boolean array")
 
         # Assign the dimension
@@ -80,10 +82,12 @@ class Field:
 
         # Ensure that the size of the mask matches the size of the field
         if self.D > 1 and field.shape[0: self.D] != self.masksize:
-            raise Exception("The size of the spatial field must match the mask")
+            raise Exception(
+                "The size of the spatial field must match the mask")
         elif self.D == 1 and field.shape[0: self.D][0] != self.masksize[1]:
             # If the size of the mask doesn't match the field then return an error
-            raise Exception("The size of the spatial field must match the mask")
+            raise Exception(
+                "The size of the spatial field must match the mask")
 
         # If it passes the above tests assign the mask to the array
         self.mask = mask
@@ -102,18 +106,21 @@ class Field:
             elif atr in ['_Field__mask']:
                 pass
             elif atr in ['_Field__fieldsize']:
-                str_output += 'fieldsize' + ': ' + str(getattr(self, atr)) + '\n'
+                str_output += 'fieldsize' + ': ' + \
+                    str(getattr(self, atr)) + '\n'
             elif atr in ['_Field__masksize']:
-                str_output += 'masksize' + ': ' + str(getattr(self, atr)) + '\n'
+                str_output += 'masksize' + ': ' + \
+                    str(getattr(self, atr)) + '\n'
             elif atr in ['_Field__field']:
-                str_output += 'field' + ': ' + str(getattr(self, atr).shape) + '\n'
+                str_output += 'field' + ': ' + \
+                    str(getattr(self, atr).shape) + '\n'
             else:
                 str_output += atr + ': ' + str(getattr(self, atr).shape) + '\n'
 
         # Return the string (minus the last \n)
         return str_output[:-1]
 
-    #Getting and setting field
+    # Getting and setting field
     def _get_field(self):
         return self.__field
 
@@ -121,28 +128,32 @@ class Field:
         if hasattr(self, 'mask'):
             if self.D > 1:
                 if value.shape[0:self.D] != self.masksize:
-                    raise ValueError("The size of the field must be compatible with the mask")
+                    raise ValueError(
+                        "The size of the field must be compatible with the mask")
             else:
                 if value.shape[0:self.D][0] != self.masksize[1]:
-                    raise ValueError("The size of the field must be compatible with the mask")
+                    raise ValueError(
+                        "The size of the field must be compatible with the mask")
         self.__field = value
         self.fieldsize = value.shape
 
-    #Getting and setting mask
+    # Getting and setting mask
     def _get_mask(self):
         return self.__mask
 
     def _set_mask(self, value):
         if (self.D > 1) and value.shape != self.masksize:
-            raise ValueError("The size of the mask must be compatible with the field")
+            raise ValueError(
+                "The size of the mask must be compatible with the field")
         elif (self.D == 1) and tuple(np.sort(value.shape)) != self.masksize:
-            raise ValueError("The size of the mask must be compatible with the field")
-        if  value.dtype != np.bool:
+            raise ValueError(
+                "The size of the mask must be compatible with the field")
+        if value.dtype != bool:
             raise Exception("The mask must be a boolean array")
         self.__mask = value
         self.masksize = value.shape
 
-    #Getting and setting fieldsize
+    # Getting and setting fieldsize
     def _get_fieldsize(self):
         return self.__fieldsize
 
@@ -151,7 +162,7 @@ class Field:
             raise Exception("The field size cannot be changed directly")
         self.__fieldsize = value
 
-    #Getting and setting masksize
+    # Getting and setting masksize
     def _get_masksize(self):
         return self.__masksize
 
@@ -167,7 +178,7 @@ class Field:
     fieldsize = property(_get_fieldsize, _set_fieldsize)
     masksize = property(_get_masksize, _set_masksize)
 
-    
+
 def make_field(array, fibersize=1):
     """ conv2field converts a numpy array to am object of class field
 
@@ -194,7 +205,7 @@ def make_field(array, fibersize=1):
         masksize = (fieldsize[0], 1)
     else:
         masksize = fieldsize[0:D]
-    mask = np.ones(masksize, dtype = bool)
+    mask = np.ones(masksize, dtype=bool)
 
     f = pr.Field(array, mask)
     return f

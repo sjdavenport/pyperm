@@ -5,7 +5,8 @@ import numpy as np
 import pyperm as pr
 from scipy.ndimage import gaussian_filter
 
-def smooth(data, fwhm, mask = 0):
+
+def smooth(data, fwhm, mask=0):
     """ smooth(data, fwhm, mask = 0) smoothes the components of the random 
     field data with an isotropic Gaussian kernel with given fwhm
 
@@ -54,11 +55,13 @@ def smooth(data, fwhm, mask = 0):
     sigma = pr.fwhm2sigma(fwhm)
 
     for i in np.arange(data.fibersize):
-        data.field[...,i] = gaussian_filter(data.field[...,i] * data.mask, sigma = sigma) * data.mask
+        data.field[..., i] = gaussian_filter(
+            data.field[..., i] * data.mask, sigma=sigma) * data.mask
 
     return data
 
-def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
+
+def statnoise(mask, nsubj, fwhm, truncation=1, scale_var=1, rf='G', df=5):
     """ statnoise constructs a an object of class Field with specified mask
     and fibersize and consisting of 2D or 3D stationary noise (arising from 
     white noise smoothed with a Gaussian kernel). 
@@ -82,12 +85,12 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
     Dim = (50,50); nsubj = 20; fwhm = 4
     F = pr.statnoise(Dim, nsubj, fwhm)
     plt.imshow(F.field[:,:,1])
-    
+
     # 3D
     Dim = (50,50,50); nsubj = 20; fwhm = 4
     F = pr.statnoise(Dim, nsubj, fwhm)
     plt.imshow(F.field[:,:,25,1])
-    
+
     # Plot the variance (the same everywhere up to noise because of the edge effect correction)
     plt.imshow(np.var(F.field, 2))
     np.var(F.field)
@@ -106,17 +109,17 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
     use1d = 0
 
     # If the mask is logical use that!
-    if isinstance(mask, np.ndarray) and mask.dtype == np.bool:
+    if isinstance(mask, np.ndarray) and mask.dtype == bool:
         # If a logical array assign the mask shape
         masksize = mask.shape
-    elif  isinstance(mask, tuple):
+    elif isinstance(mask, tuple):
         # If a tuple generate a mask of all ones
         masksize = mask
-        mask = np.ones(masksize, dtype = bool)
+        mask = np.ones(masksize, dtype=bool)
     elif isinstance(mask, int):
         use1d = 1
-        masksize = (mask,1)
-        mask = np.ones(masksize, dtype = bool)
+        masksize = (mask, 1)
+        mask = np.ones(masksize, dtype=bool)
     else:
         raise Exception("The mask is not of the right form")
 
@@ -124,7 +127,7 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
     if truncation == 1:
         truncation = 4*np.ceil(fwhm)
         truncation = truncation.astype(int)
-        
+
     # Calculate the overall size of the field
     if use1d:
         fieldsize = (masksize[0]+2*truncation,) + (nsubj,)
@@ -137,39 +140,45 @@ def statnoise(mask, nsubj, fwhm, truncation = 1, scale_var = 1):
     sigma = pr.fwhm2sigma(fwhm)
 
     # Generate normal random noise
-    data = np.random.randn(*fieldsize)
+    if rf == 'G':
+        data = np.random.randn(*fieldsize)
+    else:
+        data = np.random.standard_t(5, fieldsize)
 
     for n in np.arange(nsubj):
-        data[...,n] = gaussian_filter(data[...,n], sigma = sigma)        
-    
+        data[..., n] = gaussian_filter(data[..., n], sigma=sigma)
+
     if truncation > 0:
         if use1d:
             data = data[(truncation + 1):(masksize[0]+truncation+1), :]
         else:
-             if len(masksize) == 2:
-                 data = data[(truncation + 1):(masksize[0]+truncation+1), (truncation + 1):(masksize[1]+truncation+1), :]
-             elif len(masksize) == 3:
-                 data = data[(truncation + 1):(masksize[0]+truncation+1), (truncation + 1):(masksize[1]+truncation+1), (truncation + 1):(masksize[2]+truncation+1), :]
-             else:
-                 raise Exception("The mask must be 2D or 3D")
-                 
+            if len(masksize) == 2:
+                data = data[(truncation + 1):(masksize[0]+truncation+1),
+                            (truncation + 1):(masksize[1]+truncation+1), :]
+            elif len(masksize) == 3:
+                data = data[(truncation + 1):(masksize[0]+truncation+1), (truncation + 1):(
+                    masksize[1]+truncation+1), (truncation + 1):(masksize[2]+truncation+1), :]
+            else:
+                raise Exception("The mask must be 2D or 3D")
+
     # Scale to ensure that the noise is variance 1!
     if scale_var and truncation > 0:
         if use1d:
-            data = data/np.mean(np.std(data, 1, ddof = 1))
+            data = data/np.mean(np.std(data, 1, ddof=1))
         else:
-            #print(np.mean(np.std(data, 1, ddof = 1)))
-            data = data/np.mean(np.std(data, len(masksize), ddof = 1))
-    
-    #print(np.mean(gaussian_filter(np.ones(fieldsize), sigma = sigma)))
-    
+            # print(np.mean(np.std(data, 1, ddof = 1)))
+            data = data/np.mean(np.std(data, len(masksize), ddof=1))
+
+    # print(np.mean(gaussian_filter(np.ones(fieldsize), sigma = sigma)))
+
     # Combine the data and the mask to make a field
     out = pr.Field(data, mask)
 
     # Return the output
     return out
 
-def wfield(mask, fibersize, field_type = 'N', field_params = 3):
+
+def wfield(mask, fibersize, field_type='N', field_params=3):
     """ wfield constructs a an object of class Field with specified mask
     and fibersize and consisting of white noise.
 
@@ -205,14 +214,14 @@ def wfield(mask, fibersize, field_type = 'N', field_params = 3):
     if isinstance(mask, np.ndarray) and mask.dtype == np.bool:
         # If a logical array assign the mask shape
         masksize = mask.shape
-    elif  isinstance(mask, tuple):
+    elif isinstance(mask, tuple):
         # If a tuple generate a mask of all ones
         masksize = mask
-        mask = np.ones(masksize, dtype = bool)
+        mask = np.ones(masksize, dtype=bool)
     elif isinstance(mask, int):
         use1d = 1
-        masksize = (mask,1)
-        mask = np.ones(masksize, dtype = bool)
+        masksize = (mask, 1)
+        mask = np.ones(masksize, dtype=bool)
     else:
         raise Exception("The mask is not of the right form")
 
