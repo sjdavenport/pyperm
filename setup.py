@@ -17,6 +17,7 @@ setup(
         'scikit-learn',
         'scipy',
         'scikit-image',
+        'statsmodels',
         'nilearn'
     ],
     version='0.0.3',
